@@ -9,8 +9,8 @@
 
     <script>
         // Parameters for the video player
-        var mainMpdUrl = 'http://localhost:2222/storage/org1/mpd/381_input.mpd';
-        var adMpdUrl = 'http://localhost:2222/storage/org1/mpd1/515_ad.mpd';
+        var mainMpdUrl = 'http://localhost:2000/storage/org1/mpd/381_input.mpd';
+        var adMpdUrl = 'http://localhost:2000/storage/org1/mpd1/515_ad.mpd';
         var adPlaytimes = JSON.parse('{!! json_encode($params) !!}');
         initializePlayer(mainMpdUrl, adMpdUrl, adPlaytimes,"videoPlayer");
     </script>
