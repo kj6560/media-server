@@ -19,30 +19,21 @@ class FileController extends Controller
     public function storeFile(Request $request)
     {
         try {
-            if (empty($request->token)) {
-                return response()->json(['statusCode' => 201, 'message' => 'Missing Token', 'data' => []]);
-            }
-            $token = $request->token;
-            $org = Organization::join('site_tokens as st', 'st.org_id', '=', 'organizations.id')->select('organizations.id as org_id', 'organizations.org_name as org_name', 'organizations.storage_name')->where('st.site_auth_token', $token)->where('st.token_is_active', 1)->first();
-            if (empty($org->org_id)) {
-                return response()->json(['statusCode' => 201, 'message' => 'Token Error', 'data' => []]);
-            }
             $file = $request->file('file');
-            $folder = "public/" . $org->storage_name . "/" . $request->folder;
-            $size = $_FILES['file']['size'] / (1024 * 1024);
-            echo $size;die;
+            $folder = "public/uploads/" . $request->folder;
+            $size = $_FILES['file']['size'];
             $fpath = $_FILES['file']['name'];
             $extension = pathinfo($fpath, PATHINFO_EXTENSION);
-            if ($size > 50) {
+            if ($size > 50000000) {
                 return response()->json(['statusCode' => 201, 'message' => 'File too large', 'data' => []]);
             }
             if (!Storage::exists($folder)) {
                 Storage::makeDirectory($folder);
             }
-            if (str_contains($extension, "csv") || str_contains($extension, "CSV") || str_contains($extension, "xlsx") || str_contains($extension, "XLSX") || str_contains($extension, "PDF") || str_contains($extension, "pdf") || str_contains($extension, "docx")) {
+            if (str_contains($extension, "csv") || str_contains($extension, "CSV") || str_contains($extension, "xlsx") || str_contains($extension, "XLSX")) {
                 $path = $file->storeAs(
                     $folder,
-                    "temp" . "_" . rand(1, 1000) . "_" . $file->getClientOriginalName()
+                    "temp" . "_" . rand(1, 1000)."_". $file->getClientOriginalName()
                 );
             } else {
                 $path = $file->storeAs(
@@ -51,7 +42,7 @@ class FileController extends Controller
                 );
             }
             $file_type = 0;
-            $filePath = explode('public/' . $org->storage_name, $path)[1];
+            $filePath = explode('public/uploads/', $path)[1];
             $filePathArr = explode('/', $filePath);
             $fileName = end($filePathArr);
             $originalFileName = explode("_", $fileName)[1];
@@ -71,42 +62,28 @@ class FileController extends Controller
                     exec($command, $output, $return_var);
 
                     if ($return_var == 0) {
-                        $this->compressVideo($path, $folder, $originalFileName);
+                        $this->compressVideo($path, $folder, $fileName, $originalFileName);
                         $originalFileName = $originalFileName . ".mp4";
                     }
                 } elseif (str_contains($ext, "jpg") || str_contains($ext, "jpeg") || str_contains($ext, "png")) {
                     $file_type = 1;
-                    $this->compressImage($path, $folder, $originalFileName);
+                    $this->compressImage($path, $folder, $fileName, $originalFileName);
                     $originalFileName = $originalFileName . ".jpg";
                 } elseif (str_contains($ext, "heif") || str_contains($ext, "HEIF") || str_contains($ext, "heic") || str_contains($ext, "HEIC")) {
                     $file_type = 1;
-                } elseif (str_contains($ext, "mp3")) {
-                    $file_type = 4;
-                    $this->compressAudio($path, $folder, $originalFileName);
-                    $originalFileName = $originalFileName . ".mp3";
                 } else {
-                    $file_type = 3;
                     $originalFileName = $fileName;
                 }
             } else {
                 $originalFileName = $fileName;
             }
-            $folder = "/" . $org->storage_name . "/" . $request->folder;
-            $orgFile = new OrgFile();
-            $orgFile->org_id = $org->org_id;
-            $orgFile->file_name = $originalFileName;
-            $orgFile->folder = $folder;
-            $orgFile->is_active = 1;
-            $orgFile->file_type = $file_type;
-            $orgFile->save();
-            return response()->json(['statusCode' => 200, 'message' => 'File uploaded successfully', 'data' => ["fileName" => $originalFileName, "folder" => $folder, "file_type" => $file_type, 'org' => [
-                'org_id' => $org->org_id,
-                'org_name' => $org->org_name
-            ]]]);
         } catch (Exception $e) {
             return response()->json(['message' => $e->getMessage()]);
         }
+        return response()->json(['statusCode' => 200, 'message' => 'File uploaded successfully at ' . $path, 'data' => ["fileName" => $originalFileName, "folder" => $folder, "file_type" => $file_type]]);
     }
+
+
     public function deleteFile(Request $request)
     {
         if (empty($request->token)) {
@@ -135,7 +112,7 @@ class FileController extends Controller
         }
         return response()->json(['message' => 'File deleted successfully']);
     }
-    public function compressVideo($path, $folder, $originalFileName)
+    public function compressVideo($path, $folder, $fileName, $originalFileName)
     {
         try {
             set_time_limit(3600);
@@ -153,7 +130,7 @@ class FileController extends Controller
             return response()->json(['message' => $e->getMessage()]);
         }
     }
-    public function compressImage($path, $folder, $originalFileName)
+    public function compressImage($path, $folder, $fileName, $originalFileName)
     {
         try {
             try {
@@ -172,6 +149,7 @@ class FileController extends Controller
             print_r($e->getMessage());
         }
     }
+
     public function compressAudio($path, $folder, $originalFileName)
     {
         try {
