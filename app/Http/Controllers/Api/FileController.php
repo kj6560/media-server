@@ -71,7 +71,11 @@ class FileController extends Controller
                     $originalFileName = $originalFileName . ".jpg";
                 } elseif (str_contains($ext, "heif") || str_contains($ext, "HEIF") || str_contains($ext, "heic") || str_contains($ext, "HEIC")) {
                     $file_type = 1;
-                } else {
+                } else if(str_contains($ext, "gif") || str_contains($ext, "GIF") ){
+                    $file_type = 10;
+                }else if(str_contains($ext, "mp3") || str_contains($ext, "wav") || str_contains($ext, "aac") || str_contains($ext, "flac")){
+                    $file_type = 11;
+                }else {
                     $originalFileName = $fileName;
                 }
             } else {
